@@ -2,7 +2,7 @@
 % Question 1
 load options.mat
 %% Q1
-optionNum=1;
+optionNum=4;
 strikePrices=[2925 3025 3125 3225 3325];
 L=length(stockPrice);% data length
 Lwin=fix(L/4);% window length
@@ -11,7 +11,8 @@ Tt=ones(L,1);
 for i=1:L
     Tt(i)=(L-i)/252;
 end
-X=[stockPrice(1:L)/strikePrices(optionNum) Tt];
+X1=[stockPrice(1:L)/strikePrices(1) Tt];
+
 
 GMModel = fitgmdist(X,4);
 % figure(1),clf,
@@ -51,19 +52,29 @@ variable w(7)
 minimize( norm(designMat*w-CXtrue) )
 cvx_end
 %%
-x1=linspace(0,2,100);
-x2=linspace(0,2,100);
+CXNum=30;
+x=linspace(0.7,1.3,CXNum);
+y=linspace(0.9,0,CXNum);
 
-% syms x1 x2 CX
+CX=ones(CXNum,CXNum);
+for i=1:CXNum
+    for j=1:CXNum
+        CX(j,i)=w(1)*sqrt(([x(i),y(j)]-m1)*C1*([x(i),y(j)]-m1)')...
+            +w(2)*sqrt(([x(i),y(j)]-m2)*C2*([x(i),y(j)]-m2)')...
+            +w(3)*sqrt(([x(i),y(j)]-m3)*C3*([x(i),y(j)]-m3)')...
+            +w(4)*sqrt(([x(i),y(j)]-m4)*C4*([x(i),y(j)]-m4)')...
+            +[x(i),y(j)]*[w(5);w(6)]+w(7);
+    end
+end
 
-CX=w(1)*sqrt(([x1,x2]-m1)*C1*([x1,x2]-m1)')...
-    +w(2)*sqrt(([x1,x2]-m2)*C2*([x1,x2]-m2)')...
-    +w(3)*sqrt(([x1,x2]-m3)*C3*([x1,x2]-m3)')...
-    +w(4)*sqrt(([x1,x2]-m4)*C4*([x1,x2]-m4)')...
-    +[x1,x2]*[w(5);w(6)]+w(7);
-%%
-ezplot3(CX);
-
+figure(1),clf,
+mesh(x,y,CX);
+xlabel('S/X','FontSize',13,'FontWeight','bold')
+ylabel('T-t','FontSize',13,'FontWeight','bold')
+zlabel('C/X','FontSize',13,'FontWeight','bold')
+% axis([0.8 1.5 0 0.6 0 0.4]);
+grid on
+grid minor
 
 
 
