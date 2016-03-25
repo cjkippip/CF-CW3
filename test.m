@@ -68,6 +68,15 @@ for i=1:CXNum
             +[x(i),y(j)]*[0.14;-0.24]-0.01;
     end
 end
+
+figure(1),clf,
+mesh(x,y,CX);
+xlabel('S/X','FontSize',13,'FontWeight','bold')
+ylabel('T-t','FontSize',13,'FontWeight','bold')
+zlabel('C/X','FontSize',13,'FontWeight','bold')
+% axis([0.8 1.5 0 0.6 0 0.4]);
+grid on
+grid minor
 %%
 
 

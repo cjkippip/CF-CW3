@@ -11,7 +11,7 @@ Tt=ones(L,1);
 for i=1:L
     Tt(i)=(L-i)/252;
 end
-X1=[stockPrice(1:L)/strikePrices(1) Tt];
+X=[stockPrice(1:L)/strikePrices(1) Tt];
 
 
 GMModel = fitgmdist(X,4);
@@ -53,7 +53,7 @@ minimize( norm(designMat*w-CXtrue) )
 cvx_end
 %%
 CXNum=30;
-x=linspace(0.7,1.3,CXNum);
+x=linspace(0,1.3,CXNum);
 y=linspace(0.9,0,CXNum);
 
 CX=ones(CXNum,CXNum);
