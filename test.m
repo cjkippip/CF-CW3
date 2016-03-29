@@ -78,6 +78,22 @@ zlabel('C/X','FontSize',13,'FontWeight','bold')
 grid on
 grid minor
 %%
+aa=designMat*w;
+aaa=norm(aa-CXtrueTrain);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
