@@ -2,7 +2,7 @@
 % Question 1
 load options.mat
 %% Q1
-optionNum=1;
+optionNum=2;
 strikePrices=[2925 3025 3125 3225 3325];
 L=length(stockPrice);% data length 222
 Lwin=fix(L/4);% window length 55
@@ -24,16 +24,18 @@ CXtrue=optionCPrice(56:L,optionNum)./strikePrices(optionNum);
 CXtrueTrain=CXtrue(1:LTrain,:);
 CXtrueTest=CXtrue(LTrain+1:Lrest,:);
 
-
+%%
 GMModel = fitgmdist(XTrain,4);
-% figure(1),clf,
-% scatter(X(:,1),X(:,2),'r.');
-% hold on
-% ezcontour(@(x1,x2)pdf(GMModel,[x1 x2]),get(gca,{'XLim','YLim'}))
-% title('{\bf Scatter Plot and Fitted Gaussian Mixture Contours}')
-% hold off
-% grid on
-
+figure(1),clf,
+scatter(X(:,1),X(:,2),'ro');
+hold on
+ezcontour(@(x1,x2)pdf(GMModel,[x1 x2]),get(gca,{'XLim','YLim'}))
+title('{\bf Scatter Plot and Fitted Gaussian Mixture Contours}')
+axis([0.8 1.3 -0.1 0.8]);
+xlabel('S/X','FontSize',13,'FontWeight','bold');
+ylabel('T-t','FontSize',13,'FontWeight','bold');
+hold off
+%%
 m1=GMModel.mu(1,:);
 m2=GMModel.mu(2,:);
 m3=GMModel.mu(3,:);
@@ -54,16 +56,14 @@ for i=1:LTrain
     designMat(i,4)=sqrt((XTrain(i,:)-m4)*C4*(XTrain(i,:)-m4)');    
 end
 
-
-
 % train
 cvx_begin quiet
 variable w(7)
 minimize( norm(designMat*w-CXtrueTrain) )
 cvx_end
 %%
-CXNum=100;
-x=linspace(0.8,1.5,CXNum);
+CXNum=30;
+x=linspace(0.7,1.5,CXNum);
 y=linspace(0.7,0,CXNum);
 
 CX=ones(CXNum,CXNum);
@@ -77,7 +77,7 @@ for i=1:CXNum
     end
 end
 
-figure(1),clf,
+figure(2),clf,
 mesh(x,y,CX);
 xlabel('S/X','FontSize',13,'FontWeight','bold')
 ylabel('T-t','FontSize',13,'FontWeight','bold')
@@ -95,16 +95,17 @@ for i=1:Lrest
         +X(i,:)*[w(5);w(6)]+w(7);
 end
 
-figure(2),clf,
+figure(3),clf,
 xx1=56:222;
-plot(xx1,CXpred,'b','LineWidth',2);
+plot(xx1,CXpred,'b','LineWidth',1.5);
 xlabel('Date','FontSize',13,'FontWeight','bold')
 ylabel('C/X','FontSize',13,'FontWeight','bold')
 hold on
-plot(xx1,CXtrue,'r','LineWidth',2);
+plot(xx1,CXtrue,'r','LineWidth',1.5);
 axis([-inf,inf,-inf,inf]);
-legend('predicted','real',...
-    'Location','northeast','FontSize',13,'FontWeight','bold');
+legend({'predicted','real'},'Location','northwest',...
+    'FontSize',13,'FontWeight','bold');
+plot([205,205],[0,0.12],'k','LineWidth',2);
 grid on
 grid minor
 hold off
