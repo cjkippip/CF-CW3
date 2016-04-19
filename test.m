@@ -80,7 +80,7 @@ grid minor
 %%
 aa=designMat*w;
 aaa=norm(aa-CXtrueTrain);
-
+%%
 
 
 
