@@ -81,7 +81,12 @@ grid minor
 aa=designMat*w;
 aaa=norm(aa-CXtrueTrain);
 %%
-
+S=49;
+K=50;
+r=0.05;
+T=0.3846;
+Vol=0.13;
+y=blsprice(S,K,r,T,Vol);
 
 
 

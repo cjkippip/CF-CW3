@@ -1,5 +1,6 @@
 % Computational Finance CW2
 % Question 1
+% train 5 files
 load options.mat
 %%
 optionNum=4;% number of strike price
@@ -10,16 +11,16 @@ Lwin=fix(L/4);% window length 55
 Lrest=L-Lwin;% rest length 167
 % LTrain=fix(Lrest*13/14)+1; 
 % LTest=Lrest-LTrain; 
-LTrain=700; % train data length
-LTest=135; % test data length 
 LAll=835; % all data length
+LTrain=833; % train data length
+LTest=LAll-LTrain; % test data length 
 
 % interval_Tr=(optionNum-1)*Lrest+1:(optionNum-1)*Lrest+LTrain;
 % interval_Ts=(optionNum-1)*Lrest+LTrain+1:(optionNum-1)*Lrest+Lrest;
 % interval_All=(optionNum-1)*Lrest+1:(optionNum-1)*Lrest+Lrest;
 
-interval_Tr=1:700;
-interval_Ts=701:835;
+interval_Tr=1:LTrain;
+interval_Ts=LTrain+1:835;
 interval_All=1:835;
 
 Tt=ones(L,1);
@@ -28,28 +29,39 @@ for i=1:L
 end
 
 % data: X=[S/X T-t]
-X=[stockPrice(56:L)/strikePrices(1) Tt(56:L,1);...
-    stockPrice(56:L)/strikePrices(2) Tt(56:L,1);...
-    stockPrice(56:L)/strikePrices(3) Tt(56:L,1);...
-    stockPrice(56:L)/strikePrices(4) Tt(56:L,1);...
-    stockPrice(56:L)/strikePrices(5) Tt(56:L,1)];
+X=[stockPrice(56:L)./strikePrices(1) Tt(56:L,1);...
+    stockPrice(56:L)./strikePrices(2) Tt(56:L,1);...
+    stockPrice(56:L)./strikePrices(3) Tt(56:L,1);...
+    stockPrice(56:L)./strikePrices(4) Tt(56:L,1);...
+    stockPrice(56:L)./strikePrices(5) Tt(56:L,1)];
 
 XTrain=X(interval_Tr,:); % train data
 XTest=X(interval_Ts,:); % test data
 XAll=X(interval_All,:); % all data
 
 % normalized call option price from BS formula
-CXTrue=[BSOptionCPrices(:,1)./strikePrices(1);...
+CX_BS=[BSOptionCPrices(:,1)./strikePrices(1);...
     BSOptionCPrices(:,2)./strikePrices(2);...
     BSOptionCPrices(:,3)./strikePrices(3);...
     BSOptionCPrices(:,4)./strikePrices(4);...
     BSOptionCPrices(:,5)./strikePrices(5)];
 
-CXtrueTrain=CXTrue(interval_Tr,:); % train tag
-CXtrueTest=CXTrue(interval_Ts,:); % test tag
-CXtrueAll=CXTrue(interval_All,:); % all tag
+CX_BS_Train=CX_BS(interval_Tr,:); % train tag
+CX_BS_Test=CX_BS(interval_Ts,:); % test tag
+CX_BS_All=CX_BS(interval_All,:); % all tag
+
+% normalized call option price from observation
+CX_ob=[optionCPrice(56:222,1)./strikePrices(1);...
+    optionCPrice(56:222,2)./strikePrices(2);...
+    optionCPrice(56:222,3)./strikePrices(3);...
+    optionCPrice(56:222,4)./strikePrices(4);...
+    optionCPrice(56:222,5)./strikePrices(5)];
+
+CX_ob_Train=CX_ob(interval_Tr,:); % train tag
+CX_ob_Test=CX_ob(interval_Ts,:); % test tag
+CX_ob_All=CX_ob(interval_All,:); % all tag
 %% GMModel generate 4 means and covariances
-GMModel = fitgmdist(XTrain,4,'RegularizationValue',0.0003);
+GMModel = fitgmdist(XTrain,4,'RegularizationValue',1e-26);
 figure(1),clf,
 scatter(XTrain(:,1),XTrain(:,2),'ro');
 hold on
@@ -82,11 +94,11 @@ end
 %% train using cvx
 cvx_begin quiet
 variable w(7)
-minimize( norm(designMat*w-CXtrueTrain) )
+minimize( norm(designMat*w-CX_BS_Train) )
 cvx_end
-%% draw surface
+%% draw surface and BS scatter
 CXNum=30;
-x=linspace(0.8,1.2,CXNum);
+x=linspace(0.82,1.15,CXNum);
 y=linspace(0.7,0,CXNum);
 
 CX=ones(CXNum,CXNum);
@@ -101,26 +113,55 @@ for i=1:CXNum
 end
 
 figure(2),clf,
-plot3(X(1:167,1),X(1:167,2),CXTrue(1:167),'o',...
+plot3(X(1:167,1),X(1:167,2),CX_BS(1:167),'o',...
     'MarkerSize',8,'MarkerFaceColor','b');
 hold on
-plot3(X(168:334,1),X(168:334,2),CXTrue(168:334),'o',...
+plot3(X(168:334,1),X(168:334,2),CX_BS(168:334),'o',...
     'MarkerSize',8,'MarkerFaceColor','r');
-plot3(X(335:501,1),X(335:501,2),CXTrue(335:501),'o',...
+plot3(X(335:501,1),X(335:501,2),CX_BS(335:501),'o',...
     'MarkerSize',8,'MarkerFaceColor','m');
-plot3(X(502:668,1),X(502:668,2),CXTrue(502:668),'o',...
+plot3(X(502:668,1),X(502:668,2),CX_BS(502:668),'o',...
     'MarkerSize',8,'MarkerFaceColor','g');
-plot3(X(669:835,1),X(669:835,2),CXTrue(669:835),'o',...
+plot3(X(669:835,1),X(669:835,2),CX_BS(669:835),'o',...
     'MarkerSize',8,'MarkerFaceColor','y');
 legend({'2925','3025','3125','3225','3325'},...
     'Location','eastoutside',...
     'Orientation','vertical',...
     'FontSize',13,'FontWeight','bold')
 mesh(x,y,CX);
+
+title('Surface and BS scatter','FontSize',16)
 xlabel('S/X','FontSize',13,'FontWeight','bold')
 ylabel('T-t','FontSize',13,'FontWeight','bold')
 zlabel('C/X','FontSize',13,'FontWeight','bold')
-% axis([0.8 1.5 0 0.6 0 0.4]);
+axis([0.82 1.15 0 0.7 -0.05 0.17]);
+grid on
+grid minor
+hold off
+%% draw surface and observed scatter
+figure(3),clf,
+plot3(X(1:167,1),X(1:167,2),CX_ob(1:167),'o',...
+    'MarkerSize',8,'MarkerFaceColor','b');
+hold on
+plot3(X(168:334,1),X(168:334,2),CX_ob(168:334),'o',...
+    'MarkerSize',8,'MarkerFaceColor','r');
+plot3(X(335:501,1),X(335:501,2),CX_ob(335:501),'o',...
+    'MarkerSize',8,'MarkerFaceColor','m');
+plot3(X(502:668,1),X(502:668,2),CX_ob(502:668),'o',...
+    'MarkerSize',8,'MarkerFaceColor','g');
+plot3(X(669:835,1),X(669:835,2),CX_ob(669:835),'o',...
+    'MarkerSize',8,'MarkerFaceColor','y');
+legend({'2925','3025','3125','3225','3325'},...
+    'Location','eastoutside',...
+    'Orientation','vertical',...
+    'FontSize',13,'FontWeight','bold')
+mesh(x,y,CX);
+
+title('Surface and observed scatter','FontSize',16)
+xlabel('S/X','FontSize',13,'FontWeight','bold')
+ylabel('T-t','FontSize',13,'FontWeight','bold')
+zlabel('C/X','FontSize',13,'FontWeight','bold')
+axis([0.82 1.15 0 0.7 -0.05 0.17]);
 grid on
 grid minor
 hold off
@@ -134,45 +175,76 @@ for i=1:LAll
         +XAll(i,:)*[w(5);w(6)]+w(7);
 end
 
-figure(3),clf,
+figure(4),clf,
 xx1=1:835;
 plot(xx1,CXpred,'r','LineWidth',1.5);
 xlabel('Date','FontSize',13,'FontWeight','bold')
 ylabel('C/X','FontSize',13,'FontWeight','bold')
 hold on
-plot(xx1,CXtrueAll,'b','LineWidth',1.5);
+plot(xx1,CX_BS_All,'b','LineWidth',1.5);
 axis([-inf,inf,-inf,inf]);
 legend({'predicted','real'},'Location','northwest',...
     'FontSize',13,'FontWeight','bold');
-% plot([175,175],[0,0.12],'k','LineWidth',2);
+plot([LTrain,LTrain],[-0.05,0.15],'k','LineWidth',2);
 grid on
 grid minor
 hold off
-%% draw scatter
-figure(4),clf,
-plot3(X(1:167,1),X(1:167,2),CXTrue(1:167),'o',...
+%% draw scatter BS
+figure(5),clf,
+plot3(X(1:167,1),X(1:167,2),CX_BS(1:167),'o',...
     'MarkerSize',8,'MarkerFaceColor','b');
 hold on
-plot3(X(168:334,1),X(168:334,2),CXTrue(168:334),'o',...
+plot3(X(168:334,1),X(168:334,2),CX_BS(168:334),'o',...
     'MarkerSize',8,'MarkerFaceColor','r');
-plot3(X(335:501,1),X(335:501,2),CXTrue(335:501),'o',...
+plot3(X(335:501,1),X(335:501,2),CX_BS(335:501),'o',...
     'MarkerSize',8,'MarkerFaceColor','m');
-plot3(X(502:668,1),X(502:668,2),CXTrue(502:668),'o',...
+plot3(X(502:668,1),X(502:668,2),CX_BS(502:668),'o',...
     'MarkerSize',8,'MarkerFaceColor','g');
-plot3(X(669:835,1),X(669:835,2),CXTrue(669:835),'o',...
+plot3(X(669:835,1),X(669:835,2),CX_BS(669:835),'o',...
     'MarkerSize',8,'MarkerFaceColor','y');
 legend({'2925','3025','3125','3225','3325'},...
     'Location','eastoutside',...
     'Orientation','vertical',...
     'FontSize',13,'FontWeight','bold')
 
+title('Data generated by BS formula','FontSize',16)
 xlabel('S/X','FontSize',13,'FontWeight','bold')
 ylabel('T-t','FontSize',13,'FontWeight','bold')
 zlabel('C/X','FontSize',13,'FontWeight','bold')
 grid on
 grid minor
 hold off
-%%
+%% draw scatter observation
+figure(6),clf,
+plot3(X(1:167,1),X(1:167,2),CX_ob(1:167),'o',...
+    'MarkerSize',8,'MarkerFaceColor','b');
+hold on
+plot3(X(168:334,1),X(168:334,2),CX_ob(168:334),'o',...
+    'MarkerSize',8,'MarkerFaceColor','r');
+plot3(X(335:501,1),X(335:501,2),CX_ob(335:501),'o',...
+    'MarkerSize',8,'MarkerFaceColor','m');
+plot3(X(502:668,1),X(502:668,2),CX_ob(502:668),'o',...
+    'MarkerSize',8,'MarkerFaceColor','g');
+plot3(X(669:835,1),X(669:835,2),CX_ob(669:835),'o',...
+    'MarkerSize',8,'MarkerFaceColor','y');
+legend({'2925','3025','3125','3225','3325'},...
+    'Location','eastoutside',...
+    'Orientation','vertical',...
+    'FontSize',13,'FontWeight','bold')
+
+title('Observed data','FontSize',16)
+xlabel('S/X','FontSize',13,'FontWeight','bold')
+ylabel('T-t','FontSize',13,'FontWeight','bold')
+zlabel('C/X','FontSize',13,'FontWeight','bold')
+grid on
+grid minor
+hold off
+
+
+
+
+
+
 
 
 
