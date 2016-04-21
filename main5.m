@@ -1,6 +1,7 @@
 % Computational Finance CW2
 % Question 1
 % train 5 files
+% with bias
 load options.mat
 %%
 optionNum=4;% number of strike price
@@ -12,7 +13,7 @@ Lrest=L-Lwin;% rest length 167
 % LTrain=fix(Lrest*13/14)+1; 
 % LTest=Lrest-LTrain; 
 LAll=835; % all data length
-LTrain=LAll*0.8; % train data length
+LTrain=833; % train data length
 LTest=LAll-LTrain; % test data length 
 
 % interval_Tr=(optionNum-1)*Lrest+1:(optionNum-1)*Lrest+LTrain;
@@ -87,16 +88,25 @@ designMat(:,5)=XTrain(:,1);
 designMat(:,6)=XTrain(:,2);
 
 for i=1:LTrain
-    designMat(i,1)=sqrt((XTrain(i,:)-m1)*C1*(XTrain(i,:)-m1)');
-    designMat(i,2)=sqrt((XTrain(i,:)-m2)*C2*(XTrain(i,:)-m2)');
-    designMat(i,3)=sqrt((XTrain(i,:)-m3)*C3*(XTrain(i,:)-m3)');
-    designMat(i,4)=sqrt((XTrain(i,:)-m4)*C4*(XTrain(i,:)-m4)');    
+    designMat(i,1)=(XTrain(i,:)-m1)*C1*(XTrain(i,:)-m1)';
+    designMat(i,2)=(XTrain(i,:)-m2)*C2*(XTrain(i,:)-m2)';
+    designMat(i,3)=(XTrain(i,:)-m3)*C3*(XTrain(i,:)-m3)';
+    designMat(i,4)=(XTrain(i,:)-m4)*C4*(XTrain(i,:)-m4)';    
 end
+%% train using nolinear lsq
+fun = @(w)[sqrt(designMat(:,1)-w(8)),sqrt(designMat(:,2)-w(9)),...
+    sqrt(designMat(:,3)-w(10)),sqrt(designMat(:,4)-w(11)),...
+    designMat(:,5),designMat(:,6),designMat(:,7)]*w(1:7)-CX_BS_Train;
+w0 = 0.1*ones(11,1);
+w = lsqnonlin(fun,w0);
+
 %% train using cvx
-cvx_begin quiet
-variable w(7)
-minimize( norm(designMat*w-CX_BS_Train) )
-cvx_end
+% cvx_begin quiet
+% variable w(11)
+% minimize( norm([sqrt(designMat(:,1)-w(8)),sqrt(designMat(:,2)-w(9)),...
+%     sqrt(designMat(:,3)-w(10)),sqrt(designMat(:,4)-w(11)),...
+%     designMat(:,5),designMat(:,6),designMat(:,7)]*w(1:7)-CX_BS_Train) )
+% cvx_end
 %% C/X surface
 % CXNum=60;
 % x=linspace(0.82,1.15,CXNum);
@@ -111,10 +121,10 @@ length_Tt=length(y);
 CX=ones(length_Tt,length_SX);
 for i=1:length_SX
     for j=1:length_Tt
-        CX(j,i)=w(1)*sqrt(([x(i),y(j)]-m1)*C1*([x(i),y(j)]-m1)')...
-            +w(2)*sqrt(([x(i),y(j)]-m2)*C2*([x(i),y(j)]-m2)')...
-            +w(3)*sqrt(([x(i),y(j)]-m3)*C3*([x(i),y(j)]-m3)')...
-            +w(4)*sqrt(([x(i),y(j)]-m4)*C4*([x(i),y(j)]-m4)')...
+        CX(j,i)=w(1)*sqrt(([x(i),y(j)]-m1)*C1*([x(i),y(j)]-m1)'-w(8))...
+            +w(2)*sqrt(([x(i),y(j)]-m2)*C2*([x(i),y(j)]-m2)'-w(9))...
+            +w(3)*sqrt(([x(i),y(j)]-m3)*C3*([x(i),y(j)]-m3)'-w(10))...
+            +w(4)*sqrt(([x(i),y(j)]-m4)*C4*([x(i),y(j)]-m4)'-w(11))...
             +[x(i),y(j)]*[w(5);w(6)]+w(7);
     end
 end
@@ -256,10 +266,6 @@ ylabel('T-t','FontSize',13,'FontWeight','bold')
 zlabel('delta','FontSize',13,'FontWeight','bold')
 grid on
 grid minor
-
-
-
-
 
 
 

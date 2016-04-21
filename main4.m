@@ -3,16 +3,15 @@
 % train 5 files
 load options.mat
 %%
-optionNum=4;% number of strike price
+% optionNum=4;% number of strike price
 strikePrices=[2925 3025 3125 3225 3325];
 
 L=length(stockPrice);% data length 222
-Lwin=fix(L/4);% window length 55
-Lrest=L-Lwin;% rest length 167
-% LTrain=fix(Lrest*13/14)+1; 
-% LTest=Lrest-LTrain; 
-LAll=835; % all data length
-LTrain=LAll*0.8; % train data length
+LWin=fix(L/4);% window length 55
+LUse=L-LWin;% used length 167
+
+LAll=5*LUse; % all data length
+LTrain=0.8*LAll; % train data length
 LTest=LAll-LTrain; % test data length 
 
 % interval_Tr=(optionNum-1)*Lrest+1:(optionNum-1)*Lrest+LTrain;
@@ -256,11 +255,3 @@ ylabel('T-t','FontSize',13,'FontWeight','bold')
 zlabel('delta','FontSize',13,'FontWeight','bold')
 grid on
 grid minor
-
-
-
-
-
-
-
-
