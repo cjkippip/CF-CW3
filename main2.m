@@ -3,21 +3,21 @@
 % train singal file
 load options.mat
 %%
-optionNum=2;% number of strike price
+optionNum=1;% number of strike price
 strikePrices=[2925 3025 3125 3225 3325];
 
 L=length(stockPrice);% data length 222
 Lwin=fix(L/4);% window length 55
-Lrest=L-Lwin;% rest length 167
-% LTrain=fix(Lrest*13/14)+1; 
-% LTest=Lrest-LTrain; 
-LTrain=140; % train data length
-LTest=27; % test data length 
-LAll=167; % all data length
+LUse=L-Lwin;% used length 167
 
-interval_Tr=(optionNum-1)*Lrest+1:(optionNum-1)*Lrest+LTrain;
-interval_Ts=(optionNum-1)*Lrest+LTrain+1:(optionNum-1)*Lrest+Lrest;
-interval_All=(optionNum-1)*Lrest+1:(optionNum-1)*Lrest+Lrest;
+LAll=167; % all data length
+LTrain=round(0.8*LUse); % train data length
+LTest=LAll-LTrain; % test data length 
+
+
+interval_All=(optionNum-1)*LUse+1:(optionNum-1)*LUse+LUse;
+interval_Tr=(optionNum-1)*LUse+1:(optionNum-1)*LUse+LTrain;
+interval_Ts=(optionNum-1)*LUse+LTrain+1:(optionNum-1)*LUse+LUse;
 
 Tt=ones(L,1);
 for i=1:L
@@ -46,15 +46,17 @@ CXtrueTrain=CXtrue(interval_Tr,:); % train tag
 CXtrueTest=CXtrue(interval_Ts,:); % test tag
 CXtrueAll=CXtrue(interval_All,:); % all tag
 %% GMModel generate 4 means and covariances
-GMModel = fitgmdist(XTrain,4,'RegularizationValue',0.0003);
+GMModel = fitgmdist(XTrain,4,'RegularizationValue',0);
 figure(1),clf,
-scatter(XTrain(:,1),XTrain(:,2),'ro');
+scatter(XTrain(:,1),XTrain(:,2),'r.');
 hold on
 ezcontour(@(x1,x2)pdf(GMModel,[x1 x2]),get(gca,{'XLim','YLim'}))
 title('{\bf Scatter Plot and Fitted Gaussian Mixture Contours}')
 axis([0.8 1.3 -0.1 0.8]);
 xlabel('S/X','FontSize',13,'FontWeight','bold');
 ylabel('T-t','FontSize',13,'FontWeight','bold');
+grid on
+grid minor
 hold off
 %% disign matrix
 m1=GMModel.mu(1,:);
@@ -105,13 +107,13 @@ mesh(x,y,CX);
 xlabel('S/X','FontSize',13,'FontWeight','bold')
 ylabel('T-t','FontSize',13,'FontWeight','bold')
 zlabel('C/X','FontSize',13,'FontWeight','bold')
-axis([0.82 1.15 0 0.7 -0.05 0.17]);
+axis([0.82 1.15 0 0.7 -0.01 0.17]);
 grid on
 grid minor
 hold off
 %% draw validation
-CXpred=ones(Lrest,1);
-for i=1:Lrest
+CXpred=ones(LUse,1);
+for i=1:LUse
     CXpred(i)=w(1)*sqrt((XAll(i,:)-m1)*C1*(XAll(i,:)-m1)')...
         +w(2)*sqrt((XAll(i,:)-m2)*C2*(XAll(i,:)-m2)')...
         +w(3)*sqrt((XAll(i,:)-m3)*C3*(XAll(i,:)-m3)')...
@@ -129,23 +131,23 @@ plot(xx1,CXtrueAll,'b','LineWidth',1.5);
 axis([-inf,inf,-inf,inf]);
 legend({'predicted','real'},'Location','northwest',...
     'FontSize',13,'FontWeight','bold');
-plot([LTrain+Lwin,LTrain+Lwin],[0,0.12],'k','LineWidth',2);
+plot([LTrain+Lwin,LTrain+Lwin],[-0.02,0.15],'k','LineWidth',2);
 grid on
 grid minor
 hold off
 %% draw scatter
 figure(4),clf,
 plot3(X(1:167,1),X(1:167,2),CXtrue(1:167),'o',...
-    'MarkerSize',8,'MarkerFaceColor','b');
+    'MarkerSize',6,'MarkerFaceColor','b');
 hold on
 plot3(X(168:334,1),X(168:334,2),CXtrue(168:334),'o',...
-    'MarkerSize',8,'MarkerFaceColor','r');
+    'MarkerSize',6,'MarkerFaceColor','r');
 plot3(X(335:501,1),X(335:501,2),CXtrue(335:501),'o',...
-    'MarkerSize',8,'MarkerFaceColor','m');
+    'MarkerSize',6,'MarkerFaceColor','m');
 plot3(X(502:668,1),X(502:668,2),CXtrue(502:668),'o',...
-    'MarkerSize',8,'MarkerFaceColor','g');
+    'MarkerSize',6,'MarkerFaceColor','g');
 plot3(X(669:835,1),X(669:835,2),CXtrue(669:835),'o',...
-    'MarkerSize',8,'MarkerFaceColor','y');
+    'MarkerSize',6,'MarkerFaceColor','y');
 legend({'2925','3025','3125','3225','3325'},...
     'Location','eastoutside',...
     'Orientation','vertical',...

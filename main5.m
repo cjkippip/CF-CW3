@@ -1,7 +1,7 @@
 % Computational Finance CW2
 % Question 1
 % train 5 files
-% with bias
+% with bias(uncompleted)
 load options.mat
 %%
 optionNum=4;% number of strike price

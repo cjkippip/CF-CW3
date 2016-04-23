@@ -1,12 +1,13 @@
 % Computational Finance CW2
 % Question 1
+% original
 load options.mat
 %% Q1
 optionNum=2;% number of strike price
 strikePrices=[2925 3025 3125 3225 3325];
 L=length(stockPrice);% data length 222
 Lwin=fix(L/4);% window length 55
-Lrest=L-Lwin;% rest length 167
+LUse=L-Lwin;% used length 167
 % LTrain=fix(Lrest*13/14)+1; 
 % LTest=Lrest-LTrain; 
 LTrain=120; % train data length
@@ -27,7 +28,7 @@ CXtrueTrain=CXtrue(1:LTrain,:);
 CXtrueTest=CXtrue(LTrain+1:Lrest,:);
 
 %% GMModel generate 4 means and covariances
-GMModel = fitgmdist(XTrain,4,'RegularizationValue',0.0003);
+GMModel = fitgmdist(XTrain,4,'RegularizationValue',0);
 % GMModel = fitgmdist(XTrain,4);
 figure(1),clf,
 scatter(XTrain(:,1),XTrain(:,2),'ro');
