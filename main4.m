@@ -1,17 +1,18 @@
 % Computational Finance CW2
 % Question 1
 % train 5 files
+% every file train and test
 load options.mat
-
+%%
 % optionNum=4;% number of strike price
 strikePrices=[2925 3025 3125 3225 3325];
 
 L=length(stockPrice);% data length 222
 LWin=fix(L/4);% window length 55
 LUse=L-LWin;% used length 167
-%%
+
 L_All=LUse;
-L_Tr=round(0.98*L_All); 
+L_Tr=round(0.9*L_All); 
 L_Ts=L_All-L_Tr;
 
 LAll=5*L_All; % all data length
@@ -198,6 +199,13 @@ for i=1:LAll
         +XAll(i,:)*[w(5);w(6)]+w(7);
 end
 %% draw validation
+preMax=max(CXpred);
+preMin=min(CXpred);
+BSMax=max(CX_BS_All);
+BSMin=min(CX_BS_All);
+tMax=max(preMax,BSMax);
+tMin=min(preMin,BSMin);
+
 figure(4),clf,
 x1=1:835;
 plot(x1,CXpred,'r','LineWidth',1.5);
@@ -208,7 +216,7 @@ plot(x1,CX_BS_All,'b','LineWidth',1.5);
 axis([-inf,inf,-inf,inf]);
 legend({'predicted','real'},'Location','northwest',...
     'FontSize',13,'FontWeight','bold');
-plot([LTrain,LTrain],[-0.05,0.15],'k','LineWidth',2);
+plot([LTrain,LTrain],[tMin,tMax],'k','LineWidth',2);
 grid on
 grid minor
 hold off

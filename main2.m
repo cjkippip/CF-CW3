@@ -31,20 +31,20 @@ X=[stockPrice(56:L)/strikePrices(1) Tt(56:L,1);...
     stockPrice(56:L)/strikePrices(4) Tt(56:L,1);...
     stockPrice(56:L)/strikePrices(5) Tt(56:L,1)];
 
+XAll=X(interval_All,:); % all data
 XTrain=X(interval_Tr,:); % train data
 XTest=X(interval_Ts,:); % test data
-XAll=X(interval_All,:); % all data
 
 % normalized call option price from BS formula
-CXtrue=[BSOptionCPrices(:,1)./strikePrices(1);...
+CX_BS=[BSOptionCPrices(:,1)./strikePrices(1);...
     BSOptionCPrices(:,2)./strikePrices(2);...
     BSOptionCPrices(:,3)./strikePrices(3);...
     BSOptionCPrices(:,4)./strikePrices(4);...
     BSOptionCPrices(:,5)./strikePrices(5)];
 
-CXtrueTrain=CXtrue(interval_Tr,:); % train tag
-CXtrueTest=CXtrue(interval_Ts,:); % test tag
-CXtrueAll=CXtrue(interval_All,:); % all tag
+CX_BS_All=CX_BS(interval_All,:); % all tag
+CX_BS_Train=CX_BS(interval_Tr,:); % train tag
+CX_BS_Test=CX_BS(interval_Ts,:); % test tag
 %% GMModel generate 4 means and covariances
 GMModel = fitgmdist(XTrain,4,'RegularizationValue',0);
 figure(1),clf,
@@ -81,7 +81,7 @@ end
 %% train using cvx
 cvx_begin quiet
 variable w(7)
-minimize( norm(designMat*w-CXtrueTrain) )
+minimize( norm(designMat*w-CX_BS_Train) )
 cvx_end
 %% draw surface
 CXNum=30;
@@ -100,7 +100,7 @@ for i=1:CXNum
 end
 
 figure(2),clf,
-plot3(X(interval_All,1),X(interval_All,2),CXtrue(interval_All),...
+plot3(X(interval_All,1),X(interval_All,2),CX_BS(interval_All),...
     'o','MarkerSize',8,'MarkerFaceColor','b');
 hold on
 mesh(x,y,CX);
@@ -120,6 +120,12 @@ for i=1:LUse
         +w(4)*sqrt((XAll(i,:)-m4)*C4*(XAll(i,:)-m4)')...
         +XAll(i,:)*[w(5);w(6)]+w(7);
 end
+preMax=max(CXpred);
+preMin=min(CXpred);
+BSMax=max(CX_BS_All);
+BSMin=min(CX_BS_All);
+tMax=max(preMax,BSMax);
+tMin=min(preMin,BSMin);
 
 figure(3),clf,
 xx1=56:222;
@@ -127,26 +133,26 @@ plot(xx1,CXpred,'r','LineWidth',1.5);
 xlabel('Date','FontSize',13,'FontWeight','bold')
 ylabel('C/X','FontSize',13,'FontWeight','bold')
 hold on
-plot(xx1,CXtrueAll,'b','LineWidth',1.5);
+plot(xx1,CX_BS_All,'b','LineWidth',1.5);
 axis([-inf,inf,-inf,inf]);
 legend({'predicted','real'},'Location','northwest',...
     'FontSize',13,'FontWeight','bold');
-plot([LTrain+Lwin,LTrain+Lwin],[-0.02,0.15],'k','LineWidth',2);
+plot([LTrain+Lwin,LTrain+Lwin],[tMin,tMax],'k','LineWidth',2);
 grid on
 grid minor
 hold off
 %% draw scatter
 figure(4),clf,
-plot3(X(1:167,1),X(1:167,2),CXtrue(1:167),'o',...
+plot3(X(1:167,1),X(1:167,2),CX_BS(1:167),'o',...
     'MarkerSize',6,'MarkerFaceColor','b');
 hold on
-plot3(X(168:334,1),X(168:334,2),CXtrue(168:334),'o',...
+plot3(X(168:334,1),X(168:334,2),CX_BS(168:334),'o',...
     'MarkerSize',6,'MarkerFaceColor','r');
-plot3(X(335:501,1),X(335:501,2),CXtrue(335:501),'o',...
+plot3(X(335:501,1),X(335:501,2),CX_BS(335:501),'o',...
     'MarkerSize',6,'MarkerFaceColor','m');
-plot3(X(502:668,1),X(502:668,2),CXtrue(502:668),'o',...
+plot3(X(502:668,1),X(502:668,2),CX_BS(502:668),'o',...
     'MarkerSize',6,'MarkerFaceColor','g');
-plot3(X(669:835,1),X(669:835,2),CXtrue(669:835),'o',...
+plot3(X(669:835,1),X(669:835,2),CX_BS(669:835),'o',...
     'MarkerSize',6,'MarkerFaceColor','y');
 legend({'2925','3025','3125','3225','3325'},...
     'Location','eastoutside',...
