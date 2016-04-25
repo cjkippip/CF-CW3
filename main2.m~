@@ -22,7 +22,7 @@ interval_Ts=(optionNum-1)*LUse+LTrain+1:(optionNum-1)*LUse+LUse;
 
 Tt=ones(L,1);
 for i=1:L
-    Tt(i)=(L-i)/222;
+    Tt(i)=(L-i)/252;
 end
 
 % data: X=[S/X T-t]
@@ -142,10 +142,11 @@ xlabel('Date','FontSize',13,'FontWeight','bold')
 ylabel('C/X','FontSize',13,'FontWeight','bold')
 hold on
 plot(xx1,CX_BS_All,'b','LineWidth',1.5);
+axis([-inf,inf,-inf,inf]);
 legend({'predicted','real'},'Location','northwest',...
     'FontSize',13,'FontWeight','bold');
-plot([LTrain+Lwin,LTrain+Lwin],[-0.015,0.15],'k','LineWidth',2);
-axis([-inf inf -0.015 0.15]);
+plot([LTrain+Lwin,LTrain+Lwin],[tMin,tMax],'k','LineWidth',2);
+axis([-inf 1.15 0 0.7]);
 grid on
 grid minor
 hold off

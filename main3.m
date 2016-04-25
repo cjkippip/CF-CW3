@@ -105,19 +105,19 @@ cvx_end
 % y=linspace(0.7,0,CXNum);
 step1=0.01;
 step2=0.02;
-x=0.82:step1:1.15;
-y=0:step2:0.7;
-length_SX=length(x);
-length_Tt=length(y);
+xx1=0.82:step1:1.15;
+yy1=0:step2:0.7;
+length_SX=length(xx1);
+length_Tt=length(yy1);
 
 CX=ones(length_Tt,length_SX);
 for i=1:length_SX
     for j=1:length_Tt
-        CX(j,i)=w(1)*sqrt(([x(i),y(j)]-m1)*C1*([x(i),y(j)]-m1)')...
-            +w(2)*sqrt(([x(i),y(j)]-m2)*C2*([x(i),y(j)]-m2)')...
-            +w(3)*sqrt(([x(i),y(j)]-m3)*C3*([x(i),y(j)]-m3)')...
-            +w(4)*sqrt(([x(i),y(j)]-m4)*C4*([x(i),y(j)]-m4)')...
-            +[x(i),y(j)]*[w(5);w(6)]+w(7);
+        CX(j,i)=w(1)*sqrt(([xx1(i),yy1(j)]-m1)*C1*([xx1(i),yy1(j)]-m1)')...
+            +w(2)*sqrt(([xx1(i),yy1(j)]-m2)*C2*([xx1(i),yy1(j)]-m2)')...
+            +w(3)*sqrt(([xx1(i),yy1(j)]-m3)*C3*([xx1(i),yy1(j)]-m3)')...
+            +w(4)*sqrt(([xx1(i),yy1(j)]-m4)*C4*([xx1(i),yy1(j)]-m4)')...
+            +[xx1(i),yy1(j)]*[w(5);w(6)]+w(7);
     end
 end
 %% draw C/X surface and BS scatter
@@ -137,7 +137,7 @@ legend({'2925','3025','3125','3225','3325'},...
     'Location','eastoutside',...
     'Orientation','vertical',...
     'FontSize',13,'FontWeight','bold')
-mesh(x,y,CX);
+mesh(xx1,yy1,CX);
 
 title('Surface and BS scatter','FontSize',16)
 xlabel('S/X','FontSize',13,'FontWeight','bold')
@@ -192,12 +192,12 @@ tMax=max(preMax,BSMax);
 tMin=min(preMin,BSMin);
 
 figure(4),clf,
-xx1=1:835;
-plot(xx1,CXpred,'r','LineWidth',1.5);
+x1=1:835;
+plot(x1,CXpred,'r','LineWidth',1.5);
 xlabel('Date','FontSize',13,'FontWeight','bold')
 ylabel('C/X','FontSize',13,'FontWeight','bold')
 hold on
-plot(xx1,CX_BS_All,'b','LineWidth',1.5);
+plot(x1,CX_BS_All,'b','LineWidth',1.5);
 axis([-inf,inf,-inf,inf]);
 legend({'predicted','real'},'Location','northwest',...
     'FontSize',13,'FontWeight','bold');
@@ -258,7 +258,7 @@ hold off
 %% delta
 delta=diff(CX,1,2)/step1;
 figure(7),clf,
-mesh(x(1:end-1),y,delta);
+mesh(xx1(1:end-1),yy1,delta);
 title('Surface and BS scatter','FontSize',16)
 xlabel('S/X','FontSize',13,'FontWeight','bold')
 ylabel('T-t','FontSize',13,'FontWeight','bold')

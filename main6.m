@@ -57,15 +57,15 @@ CX_BS_All=CX_BS(interval_All,:); % all tag
 CX_BS_Train=CX_BS(interval_Tr,:); % train tag
 CX_BS_Test=CX_BS(interval_Ts,:); % test tag
 
-% normalized call option price from observation
-% CX_ob=[optionCPrice(56:222,1)./strikePrices(1);...
-%     optionCPrice(56:222,2)./strikePrices(2);...
-%     optionCPrice(56:222,3)./strikePrices(3);...
-%     optionCPrice(56:222,4)./strikePrices(4);...
-%     optionCPrice(56:222,5)./strikePrices(5)];
-% CX_ob_All=CX_ob(interval_All,:); % all tag
-% CX_ob_Train=CX_ob(interval_Tr,:); % train tag
-% CX_ob_Test=CX_ob(interval_Ts,:); % test tag
+normalized call option price from observation
+CX_ob=[optionCPrice(56:222,1)./strikePrices(1);...
+    optionCPrice(56:222,2)./strikePrices(2);...
+    optionCPrice(56:222,3)./strikePrices(3);...
+    optionCPrice(56:222,4)./strikePrices(4);...
+    optionCPrice(56:222,5)./strikePrices(5)];
+CX_ob_All=CX_ob(interval_All,:); % all tag
+CX_ob_Train=CX_ob(interval_Tr,:); % train tag
+CX_ob_Test=CX_ob(interval_Ts,:); % test tag
 
 % data with tag
 % Y_BS=[X CX_BS];
@@ -111,10 +111,10 @@ cvx_begin quiet
 variable w(7)
 minimize( norm(designMat*w-CX_BS_Train) )
 cvx_end
-%% C/X surface
+%% RBF surface
 % CXNum=60;
-% x=linspace(0.82,1.15,CXNum);
-% y=linspace(0.7,0,CXNum);
+% xx1=linspace(0.82,1.15,CXNum);
+% yy1=linspace(0.7,0,CXNum);
 step1=0.01;
 step2=0.02;
 xx1=0.82:step1:1.15;
@@ -132,6 +132,17 @@ for i=1:length_SX
             +[xx1(i),yy1(j)]*[w(5);w(6)]+w(7);
     end
 end
+%% draw simulated surface and observed scatter
+CXNum=60;
+xx1=linspace(0.82,1.15,CXNum); % S/X
+yy1=linspace(0,0.7,CXNum);
+length_SX=length(xx1);
+length_Tt=length(yy1);
+
+CX=ones(length_Tt,length_SX);
+
+
+
 %% draw RBF surface and BS scatter
 figure(2),clf,
 plot3(X(1:167,1),X(1:167,2),CX_BS(1:167),'o',...
@@ -190,88 +201,88 @@ grid minor
 %     end
 % end
 %% draw RBF surface and observed scatter
-figure(4),clf,
-plot3(X(1:167,1),X(1:167,2),CX_ob(1:167),'o',...
-    'MarkerSize',6,'MarkerFaceColor','b');
-hold on
-plot3(X(168:334,1),X(168:334,2),CX_ob(168:334),'o',...
-    'MarkerSize',6,'MarkerFaceColor','r');
-plot3(X(335:501,1),X(335:501,2),CX_ob(335:501),'o',...
-    'MarkerSize',6,'MarkerFaceColor','m');
-plot3(X(502:668,1),X(502:668,2),CX_ob(502:668),'o',...
-    'MarkerSize',6,'MarkerFaceColor','g');
-plot3(X(669:835,1),X(669:835,2),CX_ob(669:835),'o',...
-    'MarkerSize',6,'MarkerFaceColor','y');
-legend({'2925','3025','3125','3225','3325'},...
-    'Location','eastoutside',...
-    'Orientation','vertical',...
-    'FontSize',13,'FontWeight','bold')
-mesh(xx1,yy1,CX);
-
-title('RBF surface and observed scatter','FontSize',16)
-xlabel('S/X','FontSize',13,'FontWeight','bold')
-ylabel('T-t','FontSize',13,'FontWeight','bold')
-zlabel('C/X','FontSize',13,'FontWeight','bold')
-axis([0.82 1.15 0 0.7 -0.05 0.17]);
-grid on
-grid minor
-hold off
+% figure(4),clf,
+% plot3(X(1:167,1),X(1:167,2),CX_ob(1:167),'o',...
+%     'MarkerSize',6,'MarkerFaceColor','b');
+% hold on
+% plot3(X(168:334,1),X(168:334,2),CX_ob(168:334),'o',...
+%     'MarkerSize',6,'MarkerFaceColor','r');
+% plot3(X(335:501,1),X(335:501,2),CX_ob(335:501),'o',...
+%     'MarkerSize',6,'MarkerFaceColor','m');
+% plot3(X(502:668,1),X(502:668,2),CX_ob(502:668),'o',...
+%     'MarkerSize',6,'MarkerFaceColor','g');
+% plot3(X(669:835,1),X(669:835,2),CX_ob(669:835),'o',...
+%     'MarkerSize',6,'MarkerFaceColor','y');
+% legend({'2925','3025','3125','3225','3325'},...
+%     'Location','eastoutside',...
+%     'Orientation','vertical',...
+%     'FontSize',13,'FontWeight','bold')
+% mesh(xx1,yy1,CX);
+% 
+% title('RBF surface and observed scatter','FontSize',16)
+% xlabel('S/X','FontSize',13,'FontWeight','bold')
+% ylabel('T-t','FontSize',13,'FontWeight','bold')
+% zlabel('C/X','FontSize',13,'FontWeight','bold')
+% axis([0.82 1.15 0 0.7 -0.05 0.17]);
+% grid on
+% grid minor
+% hold off
 %% draw validation
-CXpred=ones(LAll,1);
-for i=1:LAll
-    CXpred(i)=w(1)*sqrt((XAll(i,:)-m1)*C1*(XAll(i,:)-m1)')...
-        +w(2)*sqrt((XAll(i,:)-m2)*C2*(XAll(i,:)-m2)')...
-        +w(3)*sqrt((XAll(i,:)-m3)*C3*(XAll(i,:)-m3)')...
-        +w(4)*sqrt((XAll(i,:)-m4)*C4*(XAll(i,:)-m4)')...
-        +XAll(i,:)*[w(5);w(6)]+w(7);
-end
-
-preMax=max(CXpred);
-preMin=min(CXpred);
-BSMax=max(CX_BS_All);
-BSMin=min(CX_BS_All);
-tMax=max(preMax,BSMax);
-tMin=min(preMin,BSMin);
-
-figure(20),clf,
-x1=1:835;
-plot(x1,CXpred,'r','LineWidth',1.5);
-xlabel('Date','FontSize',13,'FontWeight','bold')
-ylabel('C/X','FontSize',13,'FontWeight','bold')
-hold on
-plot(x1,CX_BS_All,'b','LineWidth',1.5);
-axis([-inf,inf,-inf,inf]);
-legend({'predicted','real(BS)'},'Location','northwest',...
-    'FontSize',13,'FontWeight','bold');
-plot([LTrain,LTrain],[tMin,tMax],'k','LineWidth',2);
-grid on
-grid minor
-hold off
+% CXpred=ones(LAll,1);
+% for i=1:LAll
+%     CXpred(i)=w(1)*sqrt((XAll(i,:)-m1)*C1*(XAll(i,:)-m1)')...
+%         +w(2)*sqrt((XAll(i,:)-m2)*C2*(XAll(i,:)-m2)')...
+%         +w(3)*sqrt((XAll(i,:)-m3)*C3*(XAll(i,:)-m3)')...
+%         +w(4)*sqrt((XAll(i,:)-m4)*C4*(XAll(i,:)-m4)')...
+%         +XAll(i,:)*[w(5);w(6)]+w(7);
+% end
+% 
+% preMax=max(CXpred);
+% preMin=min(CXpred);
+% BSMax=max(CX_BS_All);
+% BSMin=min(CX_BS_All);
+% tMax=max(preMax,BSMax);
+% tMin=min(preMin,BSMin);
+% 
+% figure(20),clf,
+% x1=1:835;
+% plot(x1,CXpred,'r','LineWidth',1.5);
+% xlabel('Date','FontSize',13,'FontWeight','bold')
+% ylabel('C/X','FontSize',13,'FontWeight','bold')
+% hold on
+% plot(x1,CX_BS_All,'b','LineWidth',1.5);
+% axis([-inf,inf,-inf,inf]);
+% legend({'predicted','real(BS)'},'Location','northwest',...
+%     'FontSize',13,'FontWeight','bold');
+% plot([LTrain,LTrain],[tMin,tMax],'k','LineWidth',2);
+% grid on
+% grid minor
+% hold off
 %% draw validation seperate
-for i=1:5
-    preMax=max(CXpred((i-1)*LUse+1:i*LUse));
-    preMin=min(CXpred((i-1)*LUse+1:i*LUse));
-    BSMax=max(CX_BS_All((i-1)*LUse+1:i*LUse));
-    BSMin=min(CX_BS_All((i-1)*LUse+1:i*LUse));
-    tMax=max(preMax,BSMax);
-    tMin=min(preMin,BSMin);
-    
-    
-    figure(i+20),clf,
-    x1=56:LUse+Lwin;
-    plot(x1,CXpred((i-1)*LUse+1:i*LUse),'r','LineWidth',1.5);
-    xlabel('Date','FontSize',13,'FontWeight','bold')
-    ylabel('C/X','FontSize',13,'FontWeight','bold')
-    hold on
-    plot(x1,CX_BS_All((i-1)*LUse+1:i*LUse),'b','LineWidth',1.5);
-    legend({'predicted','real(BS)'},'Location','northwest',...
-        'FontSize',13,'FontWeight','bold');
-    plot([L_Tr+Lwin,L_Tr+Lwin],[-0.015,0.15],'k','LineWidth',2);
-    axis([-inf inf -0.015 0.15]);
-    grid on
-    grid minor
-    hold off
-end
+% for i=1:5
+%     preMax=max(CXpred((i-1)*LUse+1:i*LUse));
+%     preMin=min(CXpred((i-1)*LUse+1:i*LUse));
+%     BSMax=max(CX_BS_All((i-1)*LUse+1:i*LUse));
+%     BSMin=min(CX_BS_All((i-1)*LUse+1:i*LUse));
+%     tMax=max(preMax,BSMax);
+%     tMin=min(preMin,BSMin);
+%     
+%     
+%     figure(i+20),clf,
+%     x1=56:LUse+Lwin;
+%     plot(x1,CXpred((i-1)*LUse+1:i*LUse),'r','LineWidth',1.5);
+%     xlabel('Date','FontSize',13,'FontWeight','bold')
+%     ylabel('C/X','FontSize',13,'FontWeight','bold')
+%     hold on
+%     plot(x1,CX_BS_All((i-1)*LUse+1:i*LUse),'b','LineWidth',1.5);
+%     legend({'predicted','real(BS)'},'Location','northwest',...
+%         'FontSize',13,'FontWeight','bold');
+%     plot([L_Tr+Lwin,L_Tr+Lwin],[-0.015,0.15],'k','LineWidth',2);
+%     axis([-inf inf -0.015 0.15]);
+%     grid on
+%     grid minor
+%     hold off
+% end
 %% draw scatter BS
 % figure(5),clf,
 % plot3(X(1:167,1),X(1:167,2),CX_BS(1:167),'o',...
@@ -299,34 +310,31 @@ end
 % grid minor
 % hold off
 %% draw scatter observation
-figure(6),clf,
-plot3(X(1:167,1),X(1:167,2),CX_ob(1:167),'o',...
-    'MarkerSize',6,'MarkerFaceColor','b');
-hold on
-plot3(X(168:334,1),X(168:334,2),CX_ob(168:334),'o',...
-    'MarkerSize',6,'MarkerFaceColor','r');
-plot3(X(335:501,1),X(335:501,2),CX_ob(335:501),'o',...
-    'MarkerSize',6,'MarkerFaceColor','m');
-plot3(X(502:668,1),X(502:668,2),CX_ob(502:668),'o',...
-    'MarkerSize',6,'MarkerFaceColor','g');
-plot3(X(669:835,1),X(669:835,2),CX_ob(669:835),'o',...
-    'MarkerSize',6,'MarkerFaceColor','y');
-legend({'2925','3025','3125','3225','3325'},...
-    'Location','eastoutside',...
-    'Orientation','vertical',...
-    'FontSize',13,'FontWeight','bold')
-
-title('Observed data','FontSize',16)
-xlabel('S/X','FontSize',13,'FontWeight','bold')
-ylabel('T-t','FontSize',13,'FontWeight','bold')
-zlabel('C/X','FontSize',13,'FontWeight','bold')
-grid on
-grid minor
-hold off
+% figure(6),clf,
+% plot3(X(1:167,1),X(1:167,2),CX_ob(1:167),'o',...
+%     'MarkerSize',6,'MarkerFaceColor','b');
+% hold on
+% plot3(X(168:334,1),X(168:334,2),CX_ob(168:334),'o',...
+%     'MarkerSize',6,'MarkerFaceColor','r');
+% plot3(X(335:501,1),X(335:501,2),CX_ob(335:501),'o',...
+%     'MarkerSize',6,'MarkerFaceColor','m');
+% plot3(X(502:668,1),X(502:668,2),CX_ob(502:668),'o',...
+%     'MarkerSize',6,'MarkerFaceColor','g');
+% plot3(X(669:835,1),X(669:835,2),CX_ob(669:835),'o',...
+%     'MarkerSize',6,'MarkerFaceColor','y');
+% legend({'2925','3025','3125','3225','3325'},...
+%     'Location','eastoutside',...
+%     'Orientation','vertical',...
+%     'FontSize',13,'FontWeight','bold')
+% 
+% title('Observed data','FontSize',16)
+% xlabel('S/X','FontSize',13,'FontWeight','bold')
+% ylabel('T-t','FontSize',13,'FontWeight','bold')
+% zlabel('C/X','FontSize',13,'FontWeight','bold')
+% grid on
+% grid minor
+% hold off
 %%
-
-
-
 
 
 
