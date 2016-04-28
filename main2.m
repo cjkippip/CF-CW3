@@ -4,13 +4,14 @@
 load options.mat
 %%
 MSE=ones(5,1);
+MSE2=ones(5,1);
 for optionNum=1:5
 % optionNum=5;% number of strike price
 strikePrices=[2925 3025 3125 3225 3325];
 
 L=length(stockPrice);% data length 222
-Lwin=fix(L/4);% window length 55
-LUse=L-Lwin;% used length 167
+LWin=fix(L/4);% window length 55
+LUse=L-LWin;% used length 167
 
 LAll=167; % all data length
 LTrain=round(0.8*LUse); % train data length
@@ -133,23 +134,30 @@ BSMin=min(CX_BS_All);
 tMax=max(preMax,BSMax);
 tMin=min(preMin,BSMin);
 
-MSE(optionNum)=norm(CXpred(LTrain+1:end)-CX_BS_All(LTrain+1:end));
+MSE(optionNum)=norm(CXpred(LTrain+1:end)-...
+    CX_BS_All(LTrain+1:end))/LTest;
+MSE2(optionNum)=norm(CXpred(LTrain+1:end)*strikePrices(optionNum)-...
+    CX_BS_All(LTrain+1:end)*strikePrices(optionNum))/LTest;
 
 figure(optionNum),clf,
 xx1=56:222;
 plot(xx1,CXpred,'r','LineWidth',1.5);
+title(['File ',num2str(optionNum)],'FontSize',16)
 xlabel('Date','FontSize',13,'FontWeight','bold')
 ylabel('C/X','FontSize',13,'FontWeight','bold')
 hold on
 plot(xx1,CX_BS_All,'b','LineWidth',1.5);
 legend({'predicted','real'},'Location','northwest',...
     'FontSize',13,'FontWeight','bold');
-plot([LTrain+Lwin,LTrain+Lwin],[-0.015,0.15],'k','LineWidth',2);
+plot([LTrain+LWin,LTrain+LWin],[-0.015,0.15],'k','LineWidth',2);
 axis([-inf inf -0.015 0.15]);
+set(gca,'FontSize',13)
 grid on
 grid minor
 hold off
 end
+%%
+
 %% draw scatter
 % figure(4),clf,
 % plot3(X(1:167,1),X(1:167,2),CX_BS(1:167),'o',...
