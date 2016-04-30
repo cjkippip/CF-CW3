@@ -4,20 +4,21 @@
 % every file train and test
 load options.mat
 %%
-% optionNum=4;% number of strike price
 strikePrices=[2925 3025 3125 3225 3325];
 
 L=length(stockPrice);% data length 222
 LWin=fix(L/4);% window length 55
 LUse=L-LWin;% used length 167
 
+rate_Tr=0.8;
+
 L_All=LUse;
-L_Tr=round(0.98*L_All); 
+L_Tr=round(rate_Tr*L_All); 
 L_Ts=L_All-L_Tr;
 
-LAll=5*L_All; % all data length
-LTrain=5*L_Tr; % train data length
-LTest=5*L_Ts; % test data length 
+LAll=5*L_All; % all data length 835
+LTrain=5*L_Tr; % train data length 670
+LTest=5*L_Ts; % test data length 165
 
 interval_All=1:835;
 interval_Tr=[1:L_Tr,...
@@ -33,7 +34,7 @@ interval_Ts=[L_Tr+1:L_All,...
 
 Tt=ones(L,1); % 222
 for i=1:L
-    Tt(i)=(L-i)/222;
+    Tt(i)=(L-i)/252;
 end
 Tt2=Tt(56:L,1); % 167
 
@@ -57,7 +58,7 @@ CX_BS_All=CX_BS(interval_All,:); % all tag
 CX_BS_Train=CX_BS(interval_Tr,:); % train tag
 CX_BS_Test=CX_BS(interval_Ts,:); % test tag
 
-normalized call option price from observation
+% normalized call option price from observation
 CX_ob=[optionCPrice(56:222,1)./strikePrices(1);...
     optionCPrice(56:222,2)./strikePrices(2);...
     optionCPrice(56:222,3)./strikePrices(3);...
@@ -67,25 +68,38 @@ CX_ob_All=CX_ob(interval_All,:); % all tag
 CX_ob_Train=CX_ob(interval_Tr,:); % train tag
 CX_ob_Test=CX_ob(interval_Ts,:); % test tag
 
-% data with tag
-% Y_BS=[X CX_BS];
-% Y_ob=[X CX_ob];
+% Delta
+Delta_BS_C=ones(L_All,5);
+for j=1:5
+    K=strikePrices(j);
+    for i=1:LUse  
+        S=stockPrice(LWin+i);      
+        r=0.06;
+        T=(LUse-i+1)/252;
+        [Delta_BS_C(i,j),~]=blsdelta(S,K,r,T,hisVols(i));      
+    end
+end
+Delta_BS=[Delta_BS_C(:,1);Delta_BS_C(:,2);...
+    Delta_BS_C(:,3);Delta_BS_C(:,4);Delta_BS_C(:,5)];
+Delta_BS_Tr=Delta_BS(interval_Tr,:);
+Delta_BS_Ts=Delta_BS(interval_Ts,:);
+
 %% GMModel generate 4 means and covariances
 GMModel = fitgmdist(XTrain,4,'RegularizationValue',0);
-%%
-figure(1),clf,
-scatter(XTrain(:,1),XTrain(:,2),'r.');
-hold on
-ezcontour(@(x1,x2)pdf(GMModel,[x1 x2]),get(gca,{'XLim','YLim'}))
-title('{\bf Scatter Plot and Fitted Mixture Gaussian Contours}',...
-    'FontSize',16)
-axis([0.80 1.2 -0.1 0.8]);
-xlabel('S/X','FontSize',16,'FontWeight','bold');
-ylabel('T-t','FontSize',16,'FontWeight','bold');
-set(gca,'FontSize',13)
-grid on
-grid minor
-hold off
+
+% figure(1),clf,
+% scatter(XTrain(:,1),XTrain(:,2),'r.');
+% hold on
+% ezcontour(@(x1,x2)pdf(GMModel,[x1 x2]),get(gca,{'XLim','YLim'}))
+% title('{\bf Scatter Plot and Fitted Mixture Gaussian Contours}',...
+%     'FontSize',16)
+% axis([0.80 1.2 -0.1 0.8]);
+% xlabel('S/X','FontSize',16,'FontWeight','bold');
+% ylabel('T-t','FontSize',16,'FontWeight','bold');
+% set(gca,'FontSize',13)
+% grid on
+% grid minor
+% hold off
 %% disign matrix
 m1=GMModel.mu(1,:);
 m2=GMModel.mu(2,:);
@@ -111,230 +125,117 @@ cvx_begin quiet
 variable w(7)
 minimize( norm(designMat*w-CX_BS_Train) )
 cvx_end
-%% RBF surface
-% CXNum=60;
-% xx1=linspace(0.82,1.15,CXNum);
-% yy1=linspace(0.7,0,CXNum);
+%% scattered interpolant surface
+figure(2),clf,
+plot_mesh(X(:,1),X(:,2),CX_BS);
+title('Simulated(BS) C/X data points and scattered interpolant surface','FontSize',16)
+xlabel('S/X','FontSize',16,'FontWeight','bold')
+ylabel('T-t','FontSize',16,'FontWeight','bold')
+zlabel('C/X','FontSize',16,'FontWeight','bold')
+
+figure(3),clf,
+plot_mesh(X(:,1),X(:,2),Delta_BS);
+title('Simulated(BS) Delta data points and scattered interpolant surface','FontSize',16)
+xlabel('S/X','FontSize',16,'FontWeight','bold')
+ylabel('T-t','FontSize',16,'FontWeight','bold')
+zlabel('Delta','FontSize',16,'FontWeight','bold')
+%%
 step1=0.01;
-step2=0.02;
-xx1=0.82:step1:1.15;
-yy1=0:step2:0.7;
+step2=-0.005;
+xx1=0.82:step1:1.15; % S/X direction
+yy1=0.8:step2:0; % T-t direction
 length_SX=length(xx1);
 length_Tt=length(yy1);
+yy1_Tr=yy1(1:round(rate_Tr*length_Tt));
+yy1_Ts=yy1(round(rate_Tr*length_Tt)+1:end);
+length_Tt_Tr=length(yy1_Tr);
+length_Tt_Ts=length(yy1_Ts);
 
-CX=ones(length_Tt,length_SX);
+CX_RBF=ones(length_Tt,length_SX);
 for i=1:length_SX
     for j=1:length_Tt
-        CX(j,i)=w(1)*sqrt(([xx1(i),yy1(j)]-m1)*C1*([xx1(i),yy1(j)]-m1)')...
+        CX_RBF(j,i)=w(1)*sqrt(([xx1(i),yy1(j)]-m1)*C1*([xx1(i),yy1(j)]-m1)')...
             +w(2)*sqrt(([xx1(i),yy1(j)]-m2)*C2*([xx1(i),yy1(j)]-m2)')...
             +w(3)*sqrt(([xx1(i),yy1(j)]-m3)*C3*([xx1(i),yy1(j)]-m3)')...
             +w(4)*sqrt(([xx1(i),yy1(j)]-m4)*C4*([xx1(i),yy1(j)]-m4)')...
             +[xx1(i),yy1(j)]*[w(5);w(6)]+w(7);
     end
 end
-%% draw simulated surface and observed scatter
-CXNum=60;
-xx1=linspace(0.82,1.15,CXNum); % S/X
-yy1=linspace(0,0.7,CXNum);
-length_SX=length(xx1);
-length_Tt=length(yy1);
-
-CX=ones(length_Tt,length_SX);
-
-
-
-%% draw RBF surface and BS scatter
-figure(2),clf,
-plot3(X(1:167,1),X(1:167,2),CX_BS(1:167),'o',...
-    'MarkerSize',6,'MarkerFaceColor','b');
-hold on
-plot3(X(168:334,1),X(168:334,2),CX_BS(168:334),'o',...
-    'MarkerSize',6,'MarkerFaceColor','r');
-plot3(X(335:501,1),X(335:501,2),CX_BS(335:501),'o',...
-    'MarkerSize',6,'MarkerFaceColor','m');
-plot3(X(502:668,1),X(502:668,2),CX_BS(502:668),'o',...
-    'MarkerSize',6,'MarkerFaceColor','g');
-plot3(X(669:835,1),X(669:835,2),CX_BS(669:835),'o',...
-    'MarkerSize',6,'MarkerFaceColor','y');
-legend({'2925','3025','3125','3225','3325'},...
-    'Location','eastoutside',...
-    'Orientation','vertical',...
-    'FontSize',13,'FontWeight','bold')
-mesh(xx1,yy1,CX);
-
-title('RBF surface and scatter generated by BS formula(5 files)',...
+Delta_RBF=diff(CX_RBF,1,2)/step1;
+%% draw RBF C/X surface
+figure(4),clf,
+mesh(xx1,yy1_Ts,CX_RBF(length_Tt_Tr+1:end,:));
+title('RBF C/X surface',...
     'FontSize',16)
 xlabel('S/X','FontSize',16,'FontWeight','bold')
 ylabel('T-t','FontSize',16,'FontWeight','bold')
 zlabel('C/X','FontSize',16,'FontWeight','bold')
-axis([0.82 1.15 0 0.7 -0.01 0.17]);
+% axis([0.82 1.15 -inf inf -0.01 0.17]);
 set(gca,'FontSize',13)
 grid on
 grid minor
 hold off
-%% delta
-delta_RBF=diff(CX,1,2)/step1;
-figure(3),clf,
-mesh(xx1(1:end-1),yy1,delta_RBF);
-title('Delta surface and BS scatter','FontSize',16)
-xlabel('S/X','FontSize',13,'FontWeight','bold')
-ylabel('T-t','FontSize',13,'FontWeight','bold')
-zlabel('delta','FontSize',13,'FontWeight','bold')
+%% draw RBF Delta surface
+figure(5),clf,
+mesh(xx1(2:end),yy1_Ts,Delta_RBF(length_Tt_Tr+1:end,:));
+title('RBF Delta surface',...
+    'FontSize',16)
+xlabel('S/X','FontSize',16,'FontWeight','bold')
+ylabel('T-t','FontSize',16,'FontWeight','bold')
+zlabel('Delta','FontSize',16,'FontWeight','bold')
+% axis([0.82 1.15 -inf inf -0.01 0.17]);
+set(gca,'FontSize',13)
 grid on
 grid minor
-%%
-% step1=0.01;
-% step2=0.02;
-% xx1=0.82:step1:1.15; % S/X
-% yy1=0:step2:0.7; % T-t
-% length_SX=length(xx1);
-% length_Tt=length(yy1);
-% 
-% Delta_BS=ones(length_Tt,length_SX);
-% for i=1:length_SX  
-%     for j=1:length_Tt
-%         T=yy1(j);
-%         
-%         
-%         
-%         [Delta_BS(j,i),~]=blsdelta(S,K,r,T,Vol);
-%     end
-% end
-%% draw RBF surface and observed scatter
-% figure(4),clf,
-% plot3(X(1:167,1),X(1:167,2),CX_ob(1:167),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','b');
-% hold on
-% plot3(X(168:334,1),X(168:334,2),CX_ob(168:334),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','r');
-% plot3(X(335:501,1),X(335:501,2),CX_ob(335:501),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','m');
-% plot3(X(502:668,1),X(502:668,2),CX_ob(502:668),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','g');
-% plot3(X(669:835,1),X(669:835,2),CX_ob(669:835),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','y');
-% legend({'2925','3025','3125','3225','3325'},...
-%     'Location','eastoutside',...
-%     'Orientation','vertical',...
-%     'FontSize',13,'FontWeight','bold')
-% mesh(xx1,yy1,CX);
-% 
-% title('RBF surface and observed scatter','FontSize',16)
-% xlabel('S/X','FontSize',13,'FontWeight','bold')
-% ylabel('T-t','FontSize',13,'FontWeight','bold')
-% zlabel('C/X','FontSize',13,'FontWeight','bold')
-% axis([0.82 1.15 0 0.7 -0.05 0.17]);
-% grid on
-% grid minor
-% hold off
-%% draw validation
-% CXpred=ones(LAll,1);
-% for i=1:LAll
-%     CXpred(i)=w(1)*sqrt((XAll(i,:)-m1)*C1*(XAll(i,:)-m1)')...
-%         +w(2)*sqrt((XAll(i,:)-m2)*C2*(XAll(i,:)-m2)')...
-%         +w(3)*sqrt((XAll(i,:)-m3)*C3*(XAll(i,:)-m3)')...
-%         +w(4)*sqrt((XAll(i,:)-m4)*C4*(XAll(i,:)-m4)')...
-%         +XAll(i,:)*[w(5);w(6)]+w(7);
-% end
-% 
-% preMax=max(CXpred);
-% preMin=min(CXpred);
-% BSMax=max(CX_BS_All);
-% BSMin=min(CX_BS_All);
-% tMax=max(preMax,BSMax);
-% tMin=min(preMin,BSMin);
-% 
-% figure(20),clf,
-% x1=1:835;
-% plot(x1,CXpred,'r','LineWidth',1.5);
-% xlabel('Date','FontSize',13,'FontWeight','bold')
-% ylabel('C/X','FontSize',13,'FontWeight','bold')
-% hold on
-% plot(x1,CX_BS_All,'b','LineWidth',1.5);
-% axis([-inf,inf,-inf,inf]);
-% legend({'predicted','real(BS)'},'Location','northwest',...
-%     'FontSize',13,'FontWeight','bold');
-% plot([LTrain,LTrain],[tMin,tMax],'k','LineWidth',2);
-% grid on
-% grid minor
-% hold off
-%% draw validation seperate
-% for i=1:5
-%     preMax=max(CXpred((i-1)*LUse+1:i*LUse));
-%     preMin=min(CXpred((i-1)*LUse+1:i*LUse));
-%     BSMax=max(CX_BS_All((i-1)*LUse+1:i*LUse));
-%     BSMin=min(CX_BS_All((i-1)*LUse+1:i*LUse));
-%     tMax=max(preMax,BSMax);
-%     tMin=min(preMin,BSMin);
-%     
-%     
-%     figure(i+20),clf,
-%     x1=56:LUse+Lwin;
-%     plot(x1,CXpred((i-1)*LUse+1:i*LUse),'r','LineWidth',1.5);
-%     xlabel('Date','FontSize',13,'FontWeight','bold')
-%     ylabel('C/X','FontSize',13,'FontWeight','bold')
-%     hold on
-%     plot(x1,CX_BS_All((i-1)*LUse+1:i*LUse),'b','LineWidth',1.5);
-%     legend({'predicted','real(BS)'},'Location','northwest',...
-%         'FontSize',13,'FontWeight','bold');
-%     plot([L_Tr+Lwin,L_Tr+Lwin],[-0.015,0.15],'k','LineWidth',2);
-%     axis([-inf inf -0.015 0.15]);
-%     grid on
-%     grid minor
-%     hold off
-% end
-%% draw scatter BS
-% figure(5),clf,
-% plot3(X(1:167,1),X(1:167,2),CX_BS(1:167),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','b');
-% hold on
-% plot3(X(168:334,1),X(168:334,2),CX_BS(168:334),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','r');
-% plot3(X(335:501,1),X(335:501,2),CX_BS(335:501),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','m');
-% plot3(X(502:668,1),X(502:668,2),CX_BS(502:668),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','g');
-% plot3(X(669:835,1),X(669:835,2),CX_BS(669:835),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','y');
-% legend({'2925','3025','3125','3225','3325'},...
-%     'Location','eastoutside',...
-%     'Orientation','vertical',...
-%     'FontSize',13,'FontWeight','bold')
-% 
-% title('Data generated by BS formula','FontSize',16)
-% xlabel('S/X','FontSize',16,'FontWeight','bold')
-% ylabel('T-t','FontSize',16,'FontWeight','bold')
-% zlabel('C/X','FontSize',16,'FontWeight','bold')
-% set(gca,'FontSize',13)
-% grid on
-% grid minor
-% hold off
-%% draw scatter observation
-% figure(6),clf,
-% plot3(X(1:167,1),X(1:167,2),CX_ob(1:167),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','b');
-% hold on
-% plot3(X(168:334,1),X(168:334,2),CX_ob(168:334),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','r');
-% plot3(X(335:501,1),X(335:501,2),CX_ob(335:501),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','m');
-% plot3(X(502:668,1),X(502:668,2),CX_ob(502:668),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','g');
-% plot3(X(669:835,1),X(669:835,2),CX_ob(669:835),'o',...
-%     'MarkerSize',6,'MarkerFaceColor','y');
-% legend({'2925','3025','3125','3225','3325'},...
-%     'Location','eastoutside',...
-%     'Orientation','vertical',...
-%     'FontSize',13,'FontWeight','bold')
-% 
-% title('Observed data','FontSize',16)
-% xlabel('S/X','FontSize',13,'FontWeight','bold')
-% ylabel('T-t','FontSize',13,'FontWeight','bold')
-% zlabel('C/X','FontSize',13,'FontWeight','bold')
-% grid on
-% grid minor
-% hold off
-%%
+hold off
+%% C/X and Delta error surface 
+F_CX = scatteredInterpolant(X(:,1),X(:,2),CX_BS);
+F_Delta = scatteredInterpolant(X(:,1),X(:,2),Delta_BS);
+
+[xx2,yy2]=meshgrid(xx1,yy1_Ts);
+[xx3,yy3]=meshgrid(xx1(2:end),yy1_Ts);
+
+CX_BS_grid=F_CX(xx2,yy2);
+Delta_BS_grid=F_Delta(xx3,yy3);
+
+err_CX_grid=CX_RBF(length_Tt_Tr+1:end,:)-CX_BS_grid;
+err_Delta_grid=Delta_RBF(length_Tt_Tr+1:end,:)-Delta_BS_grid;
+%% C/X error surface 
+figure(6),clf,
+mesh(xx2,yy2,err_CX_grid);
+title('C/X error',...
+    'FontSize',16)
+xlabel('S/X','FontSize',16,'FontWeight','bold')
+ylabel('T-t','FontSize',16,'FontWeight','bold')
+zlabel('C/X','FontSize',16,'FontWeight','bold')
+% axis([0.82 1.15 -inf inf -0.01 0.17]);
+set(gca,'FontSize',13)
+grid on
+grid minor
+hold off
+%% Delta error surface 
+figure(7),clf,
+mesh(xx3,yy3,err_Delta_grid);
+title('Delta error',...
+    'FontSize',16)
+xlabel('S/X','FontSize',16,'FontWeight','bold')
+ylabel('T-t','FontSize',16,'FontWeight','bold')
+zlabel('Delta','FontSize',16,'FontWeight','bold')
+% axis([0.82 1.15 -inf inf -0.01 0.17]);
+set(gca,'FontSize',13)
+grid on
+grid minor
+hold off
+
+
+
+
+
+
+
+
+
+
 
 
 

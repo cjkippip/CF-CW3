@@ -75,19 +75,19 @@ CX_ob_Test=CX_ob(interval_Ts,:); % test tag
 %% GMModel generate 4 means and covariances
 GMModel = fitgmdist(XTrain,4,'RegularizationValue',0);
 
-% figure(1),clf,
-% scatter(XTrain(:,1),XTrain(:,2),'r.');
-% hold on
-% ezcontour(@(x1,x2)pdf(GMModel,[x1 x2]),get(gca,{'XLim','YLim'}))
-% title('{\bf Scatter Plot and Fitted Mixture Gaussian Contours}',...
-%     'FontSize',16)
-% axis([0.80 1.2 -0.1 0.8]);
-% xlabel('S/X','FontSize',16,'FontWeight','bold');
-% ylabel('T-t','FontSize',16,'FontWeight','bold');
-% set(gca,'FontSize',13)
-% grid on
-% grid minor
-% hold off
+figure(1),clf,
+scatter(XTrain(:,1),XTrain(:,2),'r.');
+hold on
+ezcontour(@(x1,x2)pdf(GMModel,[x1 x2]),get(gca,{'XLim','YLim'}))
+title('{\bf Scatter Plot and Fitted Mixture Gaussian Contours}',...
+    'FontSize',16)
+axis([0.80 1.2 -0.1 0.8]);
+xlabel('S/X','FontSize',16,'FontWeight','bold');
+ylabel('T-t','FontSize',16,'FontWeight','bold');
+set(gca,'FontSize',13)
+grid on
+grid minor
+hold off
 %% disign matrix
 m1=GMModel.mu(1,:);
 m2=GMModel.mu(2,:);
@@ -176,6 +176,7 @@ for j=1:5
     end
 end
 delta_RBF=diff(CX,1,2)/step1;
+
 
 figure(3),clf,
 plot3(X(1:167,1),X(1:167,2),Delta_BS_C(:,1),'o',...
@@ -291,7 +292,8 @@ for i=1:5
     ylabel('C/X','FontSize',16,'FontWeight','bold')
     hold on
     plot(x1,CX_BS_All((i-1)*LUse+1:i*LUse),'b','LineWidth',1.5);
-    legend({'predicted','real(BS)'},'Location','northwest',...
+    plot(x1,CX_ob_All((i-1)*LUse+1:i*LUse),'g','LineWidth',1.5);
+    legend({'RBF','BS','real(observation)'},'Location','northwest',...
         'FontSize',13,'FontWeight','bold');
     plot([L_Tr+LWin,L_Tr+LWin],[-0.025,0.15],'k','LineWidth',2);
     axis([-inf inf -0.025 0.15]);
@@ -300,6 +302,9 @@ for i=1:5
     grid minor
     hold off
 end
+%% 
+figure(6),clf,
+plot_mesh(X(:,1),X(:,2),CX_BS);
 
 %% draw C/X scatter BS
 % figure(8),clf,
